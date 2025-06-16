@@ -47,6 +47,11 @@ interface UserData {
   };
 }
 
+interface TrendingTopic {
+  name: string;
+  posts: number;
+}
+
 interface CurrentUserProfile {
   location?: {
     latitude: number;
@@ -54,7 +59,7 @@ interface CurrentUserProfile {
   };
 }
 
-const TRENDING_TOPICS = [
+const TRENDING_TOPICS: TrendingTopic[] = [
   { name: 'Football', posts: 1250 },
   { name: 'Basketball', posts: 987 },
   { name: 'Soccer', posts: 845 },
@@ -100,7 +105,7 @@ export default function SearchScreen() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (searchTerm.trim()) {
+    if (searchTerm.trim() && user?.uid) { // Added null check
       searchUsers();
     } else {
       setSearchResults([]);
@@ -108,6 +113,8 @@ export default function SearchScreen() {
   }, [searchTerm, user?.uid, currentUserProfile]);
 
   const searchUsers = async () => {
+    if (!user?.uid) return; // Added null check
+    
     try {
       const q = query(collection(db, 'artifacts/sportconnect/public/data/users'));
       const querySnapshot = await getDocs(q);
@@ -197,7 +204,7 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
-  const renderTrendingItem = ({ item }: { item: { name: string; posts: number } }) => (
+  const renderTrendingItem = ({ item }: { item: TrendingTopic }) => (
     <TouchableOpacity style={styles.trendingItem}>
       <View style={styles.trendingInfo}>
         <Text style={styles.trendingName}>#{item.name}</Text>
@@ -278,15 +285,27 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
-      <FlatList
-        data={activeTab === 'users' ? searchResults : TRENDING_TOPICS}
-        keyExtractor={(item) => activeTab === 'users' ? (item as UserData).id : (item as any).name}
-        renderItem={activeTab === 'users' ? renderUserItem : renderTrendingItem}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmptyState}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-      />
+      {activeTab === 'users' ? (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id}
+          renderItem={renderUserItem}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+        />
+      ) : (
+        <FlatList
+          data={TRENDING_TOPICS}
+          keyExtractor={(item) => item.name}
+          renderItem={renderTrendingItem}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
     </SafeAreaView>
   );
 }

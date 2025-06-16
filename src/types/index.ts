@@ -1,3 +1,4 @@
+// src/types/index.ts
 export interface User {
   uid: string;
   email: string;
@@ -10,6 +11,24 @@ export interface User {
   followers: string[];
   following: string[];
   likedPosts: string[];
+  location?: {
+    city: string;
+    state: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+    formattedAddress: string;
+  };
+  sportRatings?: {
+    tennis?: number;
+    basketball?: number;
+    soccer?: number;
+    football?: number;
+    baseball?: number;
+    golf?: number;
+    swimming?: number;
+    running?: number;
+  };
 }
 
 export interface Post {
@@ -19,8 +38,28 @@ export interface Post {
   userId: string;
   userDisplayName: string;
   userProfileImageUrl?: string;
+  userLocation?: {
+    city: string;
+    state: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+    formattedAddress: string;
+  };
+  userSportRatings?: {
+    tennis?: number;
+    basketball?: number;
+    soccer?: number;
+    football?: number;
+    baseball?: number;
+    golf?: number;
+    swimming?: number;
+    running?: number;
+  };
   likeCount: number;
   commentCount: number;
   likes: string[];
   createdAt: any;
+  score?: number; // For recommendation scoring
+  distance?: number; // For distance-based recommendations
 }

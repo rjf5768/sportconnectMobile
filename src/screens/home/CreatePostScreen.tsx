@@ -31,6 +31,11 @@ export default function CreatePostScreen() {
   const maxLength = 280;
 
   const handlePost = async () => {
+    if (!user?.uid) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
     if (!text.trim() && !image) {
       Alert.alert('Error', 'Please add some text or an image');
       return;
@@ -72,6 +77,17 @@ export default function CreatePostScreen() {
     return COLORS.gray;
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>User not authenticated</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
@@ -102,12 +118,12 @@ export default function CreatePostScreen() {
           <View style={styles.userInfo}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {user?.displayName?.[0]?.toUpperCase() || 'U'}
+                {user.displayName?.[0]?.toUpperCase() || 'U'}
               </Text>
             </View>
             <View style={styles.userDetails}>
-              <Text style={styles.displayName}>{user?.displayName}</Text>
-              <Text style={styles.email}>{user?.email}</Text>
+              <Text style={styles.displayName}>{user.displayName || 'Anonymous'}</Text>
+              <Text style={styles.email}>{user.email || ''}</Text>
             </View>
           </View>
 
@@ -283,5 +299,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: COLORS.primary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.error,
   },
 });

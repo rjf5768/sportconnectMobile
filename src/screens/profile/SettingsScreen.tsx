@@ -21,6 +21,15 @@ import { db } from '../../config/firebase';
 import { userDoc } from '../../utils/paths';
 import { COLORS, SIZES } from '../../constants';
 
+interface LocationData {
+  city: string;
+  state: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+}
+
 interface UserProfile {
   uid: string;
   email: string;
@@ -33,14 +42,7 @@ interface UserProfile {
   followers: string[];
   following: string[];
   likedPosts: string[];
-  location?: {
-    city: string;
-    state: string;
-    country: string;
-    latitude: number;
-    longitude: number;
-    formattedAddress: string;
-  };
+  location?: LocationData;
   sportRatings?: {
     tennis?: number;
     basketball?: number;
@@ -73,6 +75,7 @@ export default function SettingsScreen() {
   const [sportRatings, setSportRatings] = useState<Record<string, number>>({});
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('');
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
   const [saving, setSaving] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
 
@@ -107,6 +110,7 @@ export default function SettingsScreen() {
         
         if (profileData.location) {
           setLocationEnabled(true);
+          setLocationData(profileData.location);
           setCurrentLocation(profileData.location.formattedAddress || 
             `${profileData.location.city}, ${profileData.location.state}`);
         }
@@ -158,18 +162,17 @@ export default function SettingsScreen() {
         setCurrentLocation(formattedAddress);
         setLocationEnabled(true);
         
-        // Update sport ratings to include location
-        setSportRatings(prev => ({
-          ...prev,
-          location: {
-            city: address.city || '',
-            state: address.region || '',
-            country: address.country || '',
-            latitude,
-            longitude,
-            formattedAddress,
-          }
-        }));
+        // Create location data object
+        const newLocationData: LocationData = {
+          city: address.city || '',
+          state: address.region || '',
+          country: address.country || '',
+          latitude,
+          longitude,
+          formattedAddress,
+        };
+        
+        setLocationData(newLocationData);
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -180,6 +183,11 @@ export default function SettingsScreen() {
   };
 
   const handleSave = async () => {
+    if (!user?.uid) {
+      Alert.alert('Error', 'User not found');
+      return;
+    }
+    
     setSaving(true);
     
     try {
@@ -189,8 +197,8 @@ export default function SettingsScreen() {
       };
 
       // Add location if enabled
-      if (locationEnabled && sportRatings.location) {
-        updateData.location = sportRatings.location;
+      if (locationEnabled && locationData) {
+        updateData.location = locationData;
       } else if (!locationEnabled) {
         updateData.location = null;
       }
