@@ -176,4 +176,328 @@ export default function SearchScreen() {
             )}
           </View>
           <Text style={styles.email}>{item.email}</Text>
-          {item.bio && <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text>
+          {item.bio && <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text>}
+          
+          {/* Sport ratings display */}
+          {item.sportRatings && Object.keys(item.sportRatings).length > 0 && (
+            <View style={styles.sportRatings}>
+              {Object.entries(item.sportRatings).slice(0, 3).map(([sport, rating]) => (
+                <View key={sport} style={styles.sportTag}>
+                  <Text style={styles.sportTagText}>{sport}: {rating}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+      
+      <TouchableOpacity style={styles.followButton}>
+        <Text style={styles.followButtonText}>Follow</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderTrendingItem = ({ item }: { item: { name: string; posts: number } }) => (
+    <TouchableOpacity style={styles.trendingItem}>
+      <View style={styles.trendingInfo}>
+        <Text style={styles.trendingName}>#{item.name}</Text>
+        <Text style={styles.trendingPosts}>{item.posts} posts</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+    </TouchableOpacity>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Search</Text>
+      
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search users..."
+          placeholderTextColor={COLORS.gray}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'users' && styles.activeTab]}
+          onPress={() => setActiveTab('users')}
+        >
+          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
+            Users
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
+          onPress={() => setActiveTab('trending')}
+        >
+          <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>
+            Trending
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderEmptyState = () => {
+    if (activeTab === 'users') {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="people-outline" size={64} color={COLORS.gray} />
+          <Text style={styles.emptyTitle}>
+            {searchTerm ? 'No users found' : 'Search for users'}
+          </Text>
+          <Text style={styles.emptyText}>
+            {searchTerm 
+              ? 'Try searching with different keywords'
+              : 'Enter a name or email to find other sports enthusiasts'
+            }
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="trending-up-outline" size={64} color={COLORS.gray} />
+        <Text style={styles.emptyTitle}>Trending Topics</Text>
+        <Text style={styles.emptyText}>Discover what's popular in sports</Text>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      
+      <FlatList
+        data={activeTab === 'users' ? searchResults : TRENDING_TOPICS}
+        keyExtractor={(item) => activeTab === 'users' ? (item as UserData).id : (item as any).name}
+        renderItem={activeTab === 'users' ? renderUserItem : renderTrendingItem}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    backgroundColor: COLORS.white,
+    paddingBottom: SIZES.padding,
+    marginBottom: SIZES.margin,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.black,
+    paddingHorizontal: SIZES.padding,
+    paddingTop: SIZES.padding,
+    paddingBottom: SIZES.padding,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    marginHorizontal: SIZES.margin,
+    borderRadius: SIZES.borderRadius,
+    paddingHorizontal: SIZES.padding,
+    marginBottom: SIZES.margin,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.black,
+    paddingVertical: SIZES.padding / 2,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: SIZES.padding,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.gray,
+  },
+  activeTabText: {
+    color: COLORS.primary,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    marginHorizontal: SIZES.margin,
+    marginVertical: 4,
+    padding: SIZES.padding,
+    borderRadius: SIZES.borderRadius,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    flex: 1,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: SIZES.margin,
+  },
+  avatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SIZES.margin,
+  },
+  avatarText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  displayName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.black,
+  },
+  distanceBadge: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  distanceText: {
+    fontSize: 12,
+    color: COLORS.gray,
+  },
+  email: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  bio: {
+    fontSize: 14,
+    color: COLORS.black,
+    marginTop: 4,
+  },
+  sportRatings: {
+    flexDirection: 'row',
+    marginTop: 6,
+  },
+  sportTag: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: 4,
+  },
+  sportTagText: {
+    fontSize: 10,
+    color: COLORS.white,
+    fontWeight: '500',
+  },
+  followButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SIZES.padding,
+    paddingVertical: 8,
+    borderRadius: SIZES.borderRadius,
+  },
+  followButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  trendingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    marginHorizontal: SIZES.margin,
+    marginVertical: 4,
+    padding: SIZES.padding,
+    borderRadius: SIZES.borderRadius,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  trendingInfo: {
+    flex: 1,
+  },
+  trendingName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  trendingPosts: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SIZES.padding * 4,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.black,
+    marginTop: SIZES.margin,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.gray,
+    textAlign: 'center',
+    marginTop: SIZES.margin,
+    paddingHorizontal: SIZES.padding * 2,
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+});
