@@ -63,3 +63,12 @@ export interface Post {
   score?: number; // For recommendation scoring
   distance?: number; // For distance-based recommendations
 }
+
+export interface Comment {
+  id: string;
+  text: string;
+  userId: string;
+  userDisplayName: string;
+  userProfileImageUrl?: string;
+  createdAt: any;
+}

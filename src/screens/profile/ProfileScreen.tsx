@@ -20,6 +20,7 @@ import {
   orderBy, 
   onSnapshot,
   doc,
+  getDocs,
 } from 'firebase/firestore';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,8 +70,10 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
   const [loading, setLoading] = useState(true);
+  const [loadingLiked, setLoadingLiked] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Load user profile
@@ -122,6 +125,67 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [user?.uid]);
 
+  // Load liked posts when profile changes or liked tab is active
+  useEffect(() => {
+    if (!userProfile?.likedPosts || userProfile.likedPosts.length === 0) {
+      setLikedPosts([]);
+      return;
+    }
+
+    if (activeTab === 'liked') {
+      fetchLikedPosts();
+    }
+  }, [userProfile?.likedPosts, activeTab]);
+
+  const fetchLikedPosts = async () => {
+    if (!userProfile?.likedPosts || userProfile.likedPosts.length === 0) {
+      setLikedPosts([]);
+      return;
+    }
+
+    setLoadingLiked(true);
+    
+    try {
+      // Firestore 'in' queries are limited to 10 items, so we might need to chunk if more than 10 liked posts
+      const chunks = [];
+      for (let i = 0; i < userProfile.likedPosts.length; i += 10) {
+        chunks.push(userProfile.likedPosts.slice(i, i + 10));
+      }
+
+      const allLikedPosts: Post[] = [];
+      
+      for (const chunk of chunks) {
+        const q = query(
+          collection(db, PATHS.posts),
+          where('__name__', 'in', chunk)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const posts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Post));
+        
+        allLikedPosts.push(...posts);
+      }
+
+      // Sort by created date descending
+      allLikedPosts.sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        const aTime = a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+        const bTime = b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      });
+      
+      setLikedPosts(allLikedPosts);
+    } catch (error) {
+      console.error('Error fetching liked posts:', error);
+      Alert.alert('Error', 'Failed to load liked posts');
+    } finally {
+      setLoadingLiked(false);
+    }
+  };
+
   const handleLogout = async () => {
     Alert.alert(
       'Logout',
@@ -149,7 +213,10 @@ export default function ProfileScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Refresh is handled automatically by onSnapshot
+    if (activeTab === 'liked') {
+      await fetchLikedPosts();
+    }
+    // User posts refresh is handled automatically by onSnapshot
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -258,6 +325,30 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const renderLoadingLiked = () => (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>Loading liked posts...</Text>
+    </View>
+  );
+
+  const getCurrentData = () => {
+    if (activeTab === 'posts') {
+      return userPosts;
+    } else {
+      return likedPosts;
+    }
+  };
+
+  const getCurrentEmptyComponent = () => {
+    if (activeTab === 'posts') {
+      return renderEmptyPosts();
+    } else if (loadingLiked) {
+      return renderLoadingLiked();
+    } else {
+      return renderEmptyLiked();
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -274,11 +365,11 @@ export default function ProfileScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
       <FlatList
-        data={activeTab === 'posts' ? userPosts : []} // TODO: Add liked posts
+        data={getCurrentData()}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <PostCard post={item} />}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={activeTab === 'posts' ? renderEmptyPosts : renderEmptyLiked}
+        ListEmptyComponent={getCurrentEmptyComponent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -298,6 +389,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: SIZES.padding * 2,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.gray,
   },
   profileHeader: {
     backgroundColor: COLORS.white,
