@@ -1,6 +1,6 @@
 // src/config/firebase.ts
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration using environment variables
@@ -37,8 +37,11 @@ if (missingVars.length > 0) {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Initialize Firebase Auth - using getAuth for simplicity
+// The metro.config.js fix should resolve the "component not registered" error
 export const auth = getAuth(app);
+
+// Initialize Firestore
 export const db = getFirestore(app);
 
 export default app;
