@@ -14,7 +14,8 @@ import {
   where, 
   orderBy, 
   onSnapshot,
-  doc
+  doc,
+  getDocs
 } from 'firebase/firestore';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -81,24 +82,87 @@ export default function ActivityScreen() {
       return;
     }
 
-    // Create query to get posts from followed users
-    const q = query(
-      collection(db, PATHS.posts),
-      where('userId', 'in', userProfile.following),
-      orderBy('createdAt', 'desc')
-    );
+    // Instead of using a compound query (which requires an index),
+    // we'll fetch all posts and filter them locally
+    const postsRef = collection(db, PATHS.posts);
+    const q = query(postsRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snap) => {
-      const posts = snap.docs.map((d) => ({ 
+      const allPosts = snap.docs.map((d) => ({ 
         id: d.id, 
         ...d.data() 
       } as Post));
-      setFollowingPosts(posts);
+      
+      // Filter posts to only include those from users we're following
+      const filteredPosts = allPosts.filter(post => 
+        userProfile.following.includes(post.userId)
+      );
+      
+      setFollowingPosts(filteredPosts);
       setLoading(false);
+    }, (error) => {
+      console.error('Error fetching activity posts:', error);
+      setLoading(false);
+      
+      // Fallback: if real-time listening fails, try a one-time fetch
+      fetchPostsManually();
     });
 
     return unsubscribe;
   }, [userProfile?.following]);
+
+  // Fallback method to fetch posts manually if real-time listener fails
+  const fetchPostsManually = async () => {
+    if (!userProfile?.following || userProfile.following.length === 0) {
+      setFollowingPosts([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Firestore 'in' queries are limited to 10 items
+      // If following more than 10 users, we need to chunk the requests
+      const chunks = [];
+      for (let i = 0; i < userProfile.following.length; i += 10) {
+        chunks.push(userProfile.following.slice(i, i + 10));
+      }
+
+      const allPosts: Post[] = [];
+      
+      for (const chunk of chunks) {
+        const q = query(
+          collection(db, PATHS.posts),
+          where('userId', 'in', chunk),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const posts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Post));
+        
+        allPosts.push(...posts);
+      }
+
+      // Sort all posts by creation date
+      allPosts.sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        const aTime = a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+        const bTime = b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      });
+      
+      setFollowingPosts(allPosts);
+    } catch (error) {
+      console.error('Error manually fetching posts:', error);
+      setFollowingPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>

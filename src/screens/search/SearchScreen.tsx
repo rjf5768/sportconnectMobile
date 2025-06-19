@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -88,8 +88,10 @@ export default function SearchScreen() {
   const navigation = useNavigation<AppNavigationProp>();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserData[]>([]);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile>({});
   const [activeTab, setActiveTab] = useState<'users' | 'trending'>('users');
+  const [loading, setLoading] = useState(false);
 
   // Get current user's profile for distance calculations
   useEffect(() => {
@@ -107,54 +109,66 @@ export default function SearchScreen() {
     return unsubscribeUser;
   }, [user?.uid]);
 
+  // Load all users once when component mounts
   useEffect(() => {
-    if (searchTerm.trim() && user?.uid) {
-      searchUsers();
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchTerm, user?.uid, currentUserProfile]);
-
-  const searchUsers = async () => {
     if (!user?.uid) return;
     
-    try {
-      const q = query(collection(db, 'artifacts/sportconnect/public/data/users'));
-      const querySnapshot = await getDocs(q);
-      
-      const users = querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
-        .filter(userData => 
-          userData.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          userData.email?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .filter(userData => userData.uid !== user.uid)
-        .map(userData => {
-          // Calculate distance if both users have location
-          if (currentUserProfile.location && userData.location) {
-            const distance = calculateDistance(
-              currentUserProfile.location.latitude,
-              currentUserProfile.location.longitude,
-              userData.location.latitude,
-              userData.location.longitude
-            );
-            return { ...userData, distance };
-          }
-          return userData;
-        })
-        .sort((a, b) => {
-          // Sort by distance if available, otherwise alphabetically
-          if (a.distance && b.distance) return a.distance - b.distance;
-          if (a.distance && !b.distance) return -1;
-          if (!a.distance && b.distance) return 1;
-          return a.displayName.localeCompare(b.displayName);
-        });
-      
-      setSearchResults(users);
-    } catch (error) {
-      console.error('Error searching users:', error);
-    }
-  };
+    const loadUsers = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'artifacts/sportconnect/public/data/users'));
+        const querySnapshot = await getDocs(q);
+        
+        const users = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
+          .filter(userData => userData.uid !== user.uid); // Filter out current user
+        
+        setAllUsers(users);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [user?.uid]);
+
+  // Filter users based on search term and calculate distances
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    
+    return allUsers
+      .filter(userData => 
+        userData.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        userData.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .map(userData => {
+        // Calculate distance if both users have location
+        if (currentUserProfile.location && userData.location) {
+          const distance = calculateDistance(
+            currentUserProfile.location.latitude,
+            currentUserProfile.location.longitude,
+            userData.location.latitude,
+            userData.location.longitude
+          );
+          return { ...userData, distance };
+        }
+        return userData;
+      })
+      .sort((a, b) => {
+        // Sort by distance if available, otherwise alphabetically
+        if (a.distance && b.distance) return a.distance - b.distance;
+        if (a.distance && !b.distance) return -1;
+        if (!a.distance && b.distance) return 1;
+        return a.displayName.localeCompare(b.displayName);
+      });
+  }, [searchTerm, allUsers, currentUserProfile]);
+
+  // Update search results when filtered users change
+  useEffect(() => {
+    setSearchResults(filteredUsers);
+  }, [filteredUsers]);
 
   const formatDistance = (distance?: number): string => {
     if (!distance) return '';
@@ -163,7 +177,7 @@ export default function SearchScreen() {
     return `${Math.round(distance)}km away`;
   };
 
-  const handleUserPress = (selectedUser: UserData) => {
+  const handleUserPress = useCallback((selectedUser: UserData) => {
     if (selectedUser.uid === user?.uid) {
       // Navigate to own profile (main profile tab)
       navigation.navigate('Profile');
@@ -174,9 +188,9 @@ export default function SearchScreen() {
         userName: selectedUser.displayName,
       });
     }
-  };
+  }, [user?.uid, navigation]);
 
-  const renderUserItem = ({ item }: { item: UserData }) => (
+  const renderUserItem = useCallback(({ item }: { item: UserData }) => (
     <TouchableOpacity style={styles.userItem} onPress={() => handleUserPress(item)}>
       <View style={styles.userInfo}>
         {item.profileImageUrl ? (
@@ -216,9 +230,9 @@ export default function SearchScreen() {
       
       <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
     </TouchableOpacity>
-  );
+  ), [handleUserPress, formatDistance]);
 
-  const renderTrendingItem = ({ item }: { item: TrendingTopic }) => (
+  const renderTrendingItem = useCallback(({ item }: { item: TrendingTopic }) => (
     <TouchableOpacity style={styles.trendingItem}>
       <View style={styles.trendingInfo}>
         <Text style={styles.trendingName}>#{item.name}</Text>
@@ -226,50 +240,18 @@ export default function SearchScreen() {
       </View>
       <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
     </TouchableOpacity>
-  );
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>Search</Text>
-      
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search users..."
-          placeholderTextColor={COLORS.gray}
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'users' && styles.activeTab]}
-          onPress={() => setActiveTab('users')}
-        >
-          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
-            Users
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
-          onPress={() => setActiveTab('trending')}
-        >
-          <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>
-            Trending
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  ), []);
 
   const renderEmptyState = () => {
     if (activeTab === 'users') {
+      if (loading) {
+        return (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>Loading users...</Text>
+          </View>
+        );
+      }
+      
       return (
         <View style={styles.emptyContainer}>
           <Ionicons name="people-outline" size={64} color={COLORS.gray} />
@@ -299,22 +281,61 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Search</Text>
+        
+        {/* Search Input */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search users..."
+            placeholderTextColor={COLORS.gray}
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'users' && styles.activeTab]}
+            onPress={() => setActiveTab('users')}
+          >
+            <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
+              Users
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
+            onPress={() => setActiveTab('trending')}
+          >
+            <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>
+              Trending
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      {/* Content */}
       {activeTab === 'users' ? (
         <FlatList
           data={searchResults}
           keyExtractor={(item) => item.id}
           renderItem={renderUserItem}
-          ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
+          keyboardShouldPersistTaps="handled"
         />
       ) : (
         <FlatList
           data={TRENDING_TOPICS}
           keyExtractor={(item) => item.name}
           renderItem={renderTrendingItem}
-          ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
