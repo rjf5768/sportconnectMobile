@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { 
   doc, 
   runTransaction, 
@@ -46,6 +47,7 @@ interface PostCardProps {
 
 export default function PostCard({ post }: PostCardProps) {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [likeLoading, setLikeLoading] = useState(false);
   const [currentPost, setCurrentPost] = useState(post);
   const [showComments, setShowComments] = useState(false);
@@ -209,8 +211,16 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const handleUserPress = () => {
-    // TODO: Navigate to user profile
-    Alert.alert('Profile', `View ${post.userDisplayName}'s profile`);
+    if (currentPost.userId === user?.uid) {
+      // Navigate to own profile (main profile tab)
+      navigation.navigate('Profile' as never);
+    } else {
+      // Navigate to other user's profile
+      navigation.navigate('UserProfile' as never, {
+        userId: currentPost.userId,
+        userName: currentPost.userDisplayName,
+      } as never);
+    }
   };
 
   const renderCommentItem = ({ item }: { item: Comment }) => (

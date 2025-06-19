@@ -13,6 +13,8 @@ import ActivityScreen from '../screens/activity/ActivityScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import CreatePostScreen from '../screens/home/CreatePostScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
+import FollowListScreen from '../screens/FollowListScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -73,6 +75,20 @@ function AppStack() {
           title: 'Settings',
           headerStyle: { backgroundColor: '#6366F1' },
           headerTintColor: 'white',
+        }}
+      />
+      <Stack.Screen 
+        name="UserProfile" 
+        component={UserProfileScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="FollowList" 
+        component={FollowListScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

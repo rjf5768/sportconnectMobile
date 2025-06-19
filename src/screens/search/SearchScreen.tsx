@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { collection, query, getDocs, doc, onSnapshot } from 'firebase/firestore';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -83,6 +84,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default function SearchScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserData[]>([]);
   const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile>({});
@@ -105,7 +107,7 @@ export default function SearchScreen() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (searchTerm.trim() && user?.uid) { // Added null check
+    if (searchTerm.trim() && user?.uid) {
       searchUsers();
     } else {
       setSearchResults([]);
@@ -113,7 +115,7 @@ export default function SearchScreen() {
   }, [searchTerm, user?.uid, currentUserProfile]);
 
   const searchUsers = async () => {
-    if (!user?.uid) return; // Added null check
+    if (!user?.uid) return;
     
     try {
       const q = query(collection(db, 'artifacts/sportconnect/public/data/users'));
@@ -160,8 +162,21 @@ export default function SearchScreen() {
     return `${Math.round(distance)}km away`;
   };
 
+  const handleUserPress = (selectedUser: UserData) => {
+    if (selectedUser.uid === user?.uid) {
+      // Navigate to own profile (main profile tab)
+      navigation.navigate('Profile' as never);
+    } else {
+      // Navigate to other user's profile
+      navigation.navigate('UserProfile' as never, {
+        userId: selectedUser.uid,
+        userName: selectedUser.displayName,
+      } as never);
+    }
+  };
+
   const renderUserItem = ({ item }: { item: UserData }) => (
-    <TouchableOpacity style={styles.userItem}>
+    <TouchableOpacity style={styles.userItem} onPress={() => handleUserPress(item)}>
       <View style={styles.userInfo}>
         {item.profileImageUrl ? (
           <Image source={{ uri: item.profileImageUrl }} style={styles.avatar} />
@@ -198,9 +213,7 @@ export default function SearchScreen() {
         </View>
       </View>
       
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>Follow</Text>
-      </TouchableOpacity>
+      <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
     </TouchableOpacity>
   );
 
@@ -456,17 +469,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.white,
     fontWeight: '500',
-  },
-  followButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: SIZES.padding,
-    paddingVertical: 8,
-    borderRadius: SIZES.borderRadius,
-  },
-  followButtonText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '600',
   },
   trendingItem: {
     flexDirection: 'row',

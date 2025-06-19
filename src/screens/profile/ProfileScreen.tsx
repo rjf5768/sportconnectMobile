@@ -1,4 +1,31 @@
-import React, { useState, useEffect } from 'react';
+<View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userPosts.length}</Text>
+              <Text style={styles.statLabel}>Posts</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => navigation.navigate('FollowList' as never, { 
+                userId: userProfile.uid, 
+                userName: userProfile.displayName,
+                type: 'followers' 
+              } as never)}
+            >
+              <Text style={styles.statNumber}>{userProfile.followersCount}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => navigation.navigate('FollowList' as never, { 
+                userId: userProfile.uid, 
+                userName: userProfile.displayName,
+                type: 'following' 
+              } as never)}
+            >
+              <Text style={styles.statNumber}>{userProfile.followingCount}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </TouchableOpacity>
+          </View>import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
