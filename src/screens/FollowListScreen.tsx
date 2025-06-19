@@ -13,10 +13,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { doc, onSnapshot, getDocs, collection, query, where } from 'firebase/firestore';
 
-import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../config/firebase';
-import { userDoc } from '../../utils/paths';
-import { COLORS, SIZES } from '../../constants';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../config/firebase';
+import { userDoc } from '../utils/paths';
+import { COLORS, SIZES } from '../constants';
+import { AppNavigationProp } from '../types/navigation';
 
 interface UserData {
   id: string;
@@ -37,7 +38,7 @@ interface RouteParams {
 
 export default function FollowListScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const route = useRoute();
   const { userId, userName, type } = (route.params as RouteParams) || {};
   
@@ -89,7 +90,7 @@ export default function FollowListScreen() {
         }
 
         // Sort to maintain the original order from the userIds array
-        const sortedUsers = userIds.map(id => 
+        const sortedUsers = userIds.map((id: string) => 
           allUsers.find(user => user.uid === id)
         ).filter(Boolean) as UserData[];
 
@@ -107,13 +108,13 @@ export default function FollowListScreen() {
   const handleUserPress = (selectedUser: UserData) => {
     if (selectedUser.uid === user?.uid) {
       // Navigate to own profile (main profile tab)
-      navigation.navigate('Profile' as never);
+      navigation.navigate('Profile');
     } else {
       // Navigate to other user's profile
-      navigation.navigate('UserProfile' as never, {
+      navigation.navigate('UserProfile', {
         userId: selectedUser.uid,
         userName: selectedUser.displayName,
-      } as never);
+      });
     }
   };
 

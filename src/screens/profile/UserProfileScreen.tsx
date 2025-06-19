@@ -31,6 +31,7 @@ import { userDoc } from '../../utils/paths';
 import PostCard from '../../components/posts/PostCard';
 import { COLORS, SIZES } from '../../constants';
 import { Post } from '../../types';
+import { AppNavigationProp } from '../../types/navigation';
 
 interface UserProfile {
   uid: string;
@@ -72,7 +73,7 @@ interface RouteParams {
 
 export default function UserProfileScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const route = useRoute();
   const { userId, userName } = (route.params as RouteParams) || {};
   
@@ -311,22 +312,22 @@ export default function UserProfileScreen() {
             </View>
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => navigation.navigate('FollowList' as never, { 
+              onPress={() => navigation.navigate('FollowList', { 
                 userId: userProfile.uid, 
                 userName: userProfile.displayName,
                 type: 'followers' 
-              } as never)}
+              })}
             >
               <Text style={styles.statNumber}>{userProfile.followersCount}</Text>
               <Text style={styles.statLabel}>Followers</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => navigation.navigate('FollowList' as never, { 
+              onPress={() => navigation.navigate('FollowList', { 
                 userId: userProfile.uid, 
                 userName: userProfile.displayName,
                 type: 'following' 
-              } as never)}
+              })}
             >
               <Text style={styles.statNumber}>{userProfile.followingCount}</Text>
               <Text style={styles.statLabel}>Following</Text>

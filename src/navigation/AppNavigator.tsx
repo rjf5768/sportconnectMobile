@@ -5,6 +5,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
+// Import the navigation types
+import { RootStackParamList, TabParamList } from '../types/navigation';
+
 // Screens
 import AuthScreen from '../screens/auth/AuthScreen';
 import HomeScreen from '../screens/home/HomeScreen';
@@ -16,8 +19,8 @@ import SettingsScreen from '../screens/profile/SettingsScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import FollowListScreen from '../screens/FollowListScreen';
 
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 function MainTabs() {
   return (

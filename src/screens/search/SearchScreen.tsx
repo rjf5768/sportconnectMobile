@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../config/firebase';
 import { userDoc } from '../../utils/paths';
 import { COLORS, SIZES } from '../../constants';
+import { AppNavigationProp } from '../../types/navigation';
 
 interface UserData {
   id: string;
@@ -84,7 +85,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default function SearchScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserData[]>([]);
   const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile>({});
@@ -165,13 +166,13 @@ export default function SearchScreen() {
   const handleUserPress = (selectedUser: UserData) => {
     if (selectedUser.uid === user?.uid) {
       // Navigate to own profile (main profile tab)
-      navigation.navigate('Profile' as never);
+      navigation.navigate('Profile');
     } else {
       // Navigate to other user's profile
-      navigation.navigate('UserProfile' as never, {
+      navigation.navigate('UserProfile', {
         userId: selectedUser.uid,
         userName: selectedUser.displayName,
-      } as never);
+      });
     }
   };
 

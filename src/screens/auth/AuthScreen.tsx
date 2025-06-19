@@ -13,6 +13,86 @@ import {
 import { signUp, signIn } from '../../services/authService';
 import { COLORS, SIZES } from '../../constants';
 
+// Function to convert Firebase error codes to user-friendly messages
+const getErrorMessage = (error: any): string => {
+  const errorCode = error?.code || '';
+  
+  switch (errorCode) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Invalid email or password. Please try again.';
+    
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
+    
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters long.';
+    
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    
+    case 'auth/operation-not-allowed':
+      return 'Email/password accounts are not enabled.';
+    
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection and try again.';
+    
+    case 'auth/requires-recent-login':
+      return 'Please log out and log back in to continue.';
+    
+    case 'auth/credential-already-in-use':
+      return 'This credential is already associated with a different account.';
+    
+    case 'auth/invalid-verification-code':
+      return 'Invalid verification code.';
+    
+    case 'auth/invalid-verification-id':
+      return 'Invalid verification ID.';
+    
+    case 'auth/missing-email':
+      return 'Please enter your email address.';
+    
+    case 'auth/missing-password':
+      return 'Please enter your password.';
+    
+    case 'auth/internal-error':
+      return 'An internal error occurred. Please try again.';
+    
+    case 'auth/popup-closed-by-user':
+      return 'Authentication was cancelled.';
+    
+    case 'auth/unauthorized-domain':
+      return 'This domain is not authorized for this operation.';
+    
+    default:
+      // For any unhandled errors, provide a generic message
+      if (error?.message) {
+        // Clean up the error message by removing Firebase prefixes
+        const cleanMessage = error.message
+          .replace(/Firebase: /g, '')
+          .replace(/Error \([^)]*\)/g, '')
+          .replace(/auth\//g, '')
+          .trim();
+        
+        // If it's still a technical message, provide a generic one
+        if (cleanMessage.includes('auth/') || cleanMessage.length > 100) {
+          return 'An error occurred during authentication. Please try again.';
+        }
+        
+        return cleanMessage;
+      }
+      
+      return 'An unexpected error occurred. Please try again.';
+  }
+};
+
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -31,6 +111,19 @@ export default function AuthScreen() {
       return;
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    // Basic password validation
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -39,10 +132,12 @@ export default function AuthScreen() {
         Alert.alert('Success', 'Account created successfully!');
       } else {
         await signIn(email.trim(), password);
-        Alert.alert('Success', 'Logged in successfully!');
+        // Don't show success alert for sign in, just let them into the app
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An error occurred');
+      console.error('Auth error:', error);
+      const userFriendlyMessage = getErrorMessage(error);
+      Alert.alert('Authentication Error', userFriendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -69,6 +164,7 @@ export default function AuthScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize="words"
+              editable={!loading}
             />
           )}
 
@@ -80,6 +176,7 @@ export default function AuthScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
 
           <TextInput
@@ -89,6 +186,7 @@ export default function AuthScreen() {
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
+            editable={!loading}
           />
 
           <TouchableOpacity
@@ -104,8 +202,9 @@ export default function AuthScreen() {
           <TouchableOpacity
             style={styles.switchButton}
             onPress={() => setIsSignUp(!isSignUp)}
+            disabled={loading}
           >
-            <Text style={styles.switchText}>
+            <Text style={[styles.switchText, loading && styles.switchTextDisabled]}>
               {isSignUp 
                 ? 'Already have an account? Sign In' 
                 : "Don't have an account? Sign Up"
@@ -184,5 +283,8 @@ const styles = StyleSheet.create({
   switchText: {
     color: COLORS.primary,
     fontSize: 14,
+  },
+  switchTextDisabled: {
+    opacity: 0.5,
   },
 });

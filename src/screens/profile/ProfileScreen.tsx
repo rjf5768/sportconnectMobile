@@ -1,31 +1,4 @@
-<View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userPosts.length}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => navigation.navigate('FollowList' as never, { 
-                userId: userProfile.uid, 
-                userName: userProfile.displayName,
-                type: 'followers' 
-              } as never)}
-            >
-              <Text style={styles.statNumber}>{userProfile.followersCount}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => navigation.navigate('FollowList' as never, { 
-                userId: userProfile.uid, 
-                userName: userProfile.displayName,
-                type: 'following' 
-              } as never)}
-            >
-              <Text style={styles.statNumber}>{userProfile.followingCount}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </TouchableOpacity>
-          </View>import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -58,6 +31,7 @@ import { logout } from '../../services/authService';
 import PostCard from '../../components/posts/PostCard';
 import { COLORS, SIZES } from '../../constants';
 import { Post } from '../../types';
+import { AppNavigationProp } from '../../types/navigation';
 
 interface UserProfile {
   uid: string;
@@ -94,7 +68,7 @@ interface UserProfile {
 
 export default function ProfileScreen() {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [likedPosts, setLikedPosts] = useState<Post[]>([]);
@@ -235,7 +209,7 @@ export default function ProfileScreen() {
   };
 
   const handleSettings = () => {
-    navigation.navigate('Settings' as never);
+    navigation.navigate('Settings');
   };
 
   const onRefresh = async () => {
@@ -293,14 +267,28 @@ export default function ProfileScreen() {
               <Text style={styles.statNumber}>{userPosts.length}</Text>
               <Text style={styles.statLabel}>Posts</Text>
             </View>
-            <View style={styles.statItem}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => navigation.navigate('FollowList', { 
+                userId: userProfile.uid, 
+                userName: userProfile.displayName,
+                type: 'followers' 
+              })}
+            >
               <Text style={styles.statNumber}>{userProfile.followersCount}</Text>
               <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statItem}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => navigation.navigate('FollowList', { 
+                userId: userProfile.uid, 
+                userName: userProfile.displayName,
+                type: 'following' 
+              })}
+            >
               <Text style={styles.statNumber}>{userProfile.followingCount}</Text>
               <Text style={styles.statLabel}>Following</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.tabsContainer}>

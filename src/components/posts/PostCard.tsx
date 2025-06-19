@@ -31,6 +31,7 @@ import { userDoc } from '../../utils/paths';
 import { PATHS } from '../../services/firestoreService';
 import { COLORS, SIZES } from '../../constants';
 import { Post } from '../../types';
+import { AppNavigationProp } from '../../types/navigation';
 
 interface Comment {
   id: string;
@@ -47,7 +48,7 @@ interface PostCardProps {
 
 export default function PostCard({ post }: PostCardProps) {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const [likeLoading, setLikeLoading] = useState(false);
   const [currentPost, setCurrentPost] = useState(post);
   const [showComments, setShowComments] = useState(false);
@@ -213,13 +214,13 @@ export default function PostCard({ post }: PostCardProps) {
   const handleUserPress = () => {
     if (currentPost.userId === user?.uid) {
       // Navigate to own profile (main profile tab)
-      navigation.navigate('Profile' as never);
+      navigation.navigate('Profile');
     } else {
       // Navigate to other user's profile
-      navigation.navigate('UserProfile' as never, {
+      navigation.navigate('UserProfile', {
         userId: currentPost.userId,
         userName: currentPost.userDisplayName,
-      } as never);
+      });
     }
   };
 
